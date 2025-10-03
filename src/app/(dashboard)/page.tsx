@@ -1,11 +1,35 @@
-import { getMessages } from '@/server/chat';
+import { notFound } from 'next/navigation';
+
+import {
+  getConversationById,
+  getConversations,
+  getMessages,
+} from '@/server/chat';
 
 import { Chat } from '@/components/chat';
 
 import type { UIMessage } from 'ai';
 
-export default async function Home() {
-  const messages = await getMessages('3da25b07-3fe3-4924-b849-052bc7fd1b1b');
+type HomeProps = {
+  searchParams: Promise<
+    Partial<{
+      conversationId: string;
+    }>
+  >;
+};
+
+export default async function Home({ searchParams }: HomeProps) {
+  const { conversationId = '' } = await searchParams;
+  console.log(conversationId);
+
+  const conversation = conversationId
+    ? await getConversationById(conversationId)
+    : null;
+
+  const conversations = await getConversations();
+
+  const messages = conversation ? await getMessages(conversationId) : [];
+
   const UIMessages: UIMessage[] = messages.map(message => ({
     id: message.id,
     role: message.role,
@@ -14,7 +38,11 @@ export default async function Home() {
 
   return (
     <div>
-      <Chat initialMessages={UIMessages} />
+      <Chat
+        initialMessages={UIMessages}
+        conversation={conversation}
+        conversations={conversations}
+      />
     </div>
   );
 }
