@@ -1,5 +1,7 @@
-import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { streamText, UIMessage } from 'ai';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+
+import { stringifiyUIMessage } from '@/lib/chat';
 
 const openRouter = createOpenRouter({
   apiKey: process.env.OPEN_ROUTER_API_KEY,
@@ -77,6 +79,7 @@ Instructions for Execution:
 Given the subject and keywords, generate a blog post that adheres to the above structure and guidelines.
 Ensure the content is original, engaging, and tailored to the Farsi-speaking audience.
 Double-check the Markdown formatting and Farsi text for accuracy before finalizing the output.
+Do not include the length of the blog post at the end of it.
 `;
 
 const MEMORY_LENGTH = 5;
@@ -86,10 +89,7 @@ export const POST = async (req: Request) => {
   const latestMessages = messages.slice(MEMORY_LENGTH * -1).map(message => {
     return {
       role: message.role,
-      content: message.parts
-        .filter(part => part.type === 'text')
-        .map(part => part.text)
-        .join(''),
+      content: stringifiyUIMessage(message),
     };
   });
 
