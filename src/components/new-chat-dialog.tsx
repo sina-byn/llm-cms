@@ -40,6 +40,7 @@ import {
   FormControl,
   FormMessage,
 } from '@/components/ui/form';
+import { useState } from 'react';
 
 const ConversationSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -51,6 +52,7 @@ export type Conversation = z.infer<typeof ConversationSchema> & {
 };
 
 export function NewChatDialog() {
+  const [open, setOpen] = useState<boolean>(false);
   const router = useRouter();
 
   const form = useForm({
@@ -70,10 +72,11 @@ export function NewChatDialog() {
     form.reset();
     toast.success('Chat created successfully');
     router.push(`?conversationId=${conversationId}`);
+    setOpen(false);
   };
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button
           variant='outline'
