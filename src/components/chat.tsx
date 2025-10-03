@@ -3,11 +3,14 @@
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 
-import { ArrowUp, PlusIcon } from 'lucide-react';
+import { useChat, type UIMessage } from '@ai-sdk/react';
+
+import { ArrowUp, Eye, PlusIcon, Square } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
 import { CopyButton } from '@/components/copy-button';
+import { SignOutButton } from '@/components/sign-out-button';
 
 import { Button } from '@/components/ui/button';
 import { ScrollButton } from '@/components/ui/scroll-button';
@@ -36,6 +39,7 @@ import {
   SidebarInset,
   SidebarGroup,
   SidebarHeader,
+  SidebarFooter,
   SidebarContent,
   SidebarTrigger,
   SidebarProvider,
@@ -43,8 +47,13 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 
-//
-import type { ChatMessage } from '@/types/chat';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 // Initial conversation history
 const conversationHistory = [
@@ -133,28 +142,53 @@ const conversationHistory = [
 ];
 
 // Initial chat messages
-const initialMessages = [
+const initialMessages: UIMessage[] = [
   {
-    id: 1,
+    id: '1',
     role: 'user',
-    content: 'Hello! Can you help me with a coding question?',
+    parts: [
+      { type: 'text', text: 'Hello! Can you help me with a coding question?' },
+    ],
   },
   {
-    id: 2,
+    id: '2',
     role: 'assistant',
-    content:
-      "Of course! I'd be happy to help with your coding question. What would you like to know?",
+    parts: [
+      {
+        type: 'text',
+        text: "Of course! I'd be happy to help with your coding question. What would you like to know?",
+      },
+    ],
   },
   {
-    id: 3,
+    id: '3',
     role: 'user',
-    content: 'How do I create a responsive layout with CSS Grid?',
+    parts: [
+      {
+        type: 'text',
+        text: 'How do I create a responsive layout with CSS Grid?',
+      },
+    ],
   },
   {
-    id: 4,
+    id: '4',
     role: 'assistant',
-    content:
-      "Creating a responsive layout with CSS Grid is straightforward. Here's a basic example:\n\n```css\n.container {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));\n  gap: 1rem;\n}\n```\n\nThis creates a grid where:\n- Columns automatically fit as many as possible\n- Each column is at least 250px wide\n- Columns expand to fill available space\n- There's a 1rem gap between items\n\nWould you like me to explain more about how this works?",
+    parts: [
+      {
+        type: 'text',
+        text: "Creating a responsive layout with CSS Grid is straightforward. Here's a basic example:\n\n```css\n.container {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));\n  gap: 1rem;\n}\n```\n\nThis creates a grid where:\n- Columns automatically fit as many as possible\n- Each column is at least 250px wide\n- Columns expand to fill available space\n- There's a 1rem gap between items\n\nWould you like me to explain more about how this works?",
+      },
+    ],
+  },
+  {
+    id: '5',
+    role: 'assistant',
+    parts: [
+      {
+        type: 'text',
+        text: 'لورم ایپسوم متن ساختگی با تولید سادگی نامفهوم از صنعت چاپ، و با استفاده از طراحان گرافیک است، چاپگرها و متون بلکه روزنامه و مجله در ستون و سطرآنچنان که لازم است، و برای شرایط فعلی تکنولوژی مورد نیاز، و کاربردهای متنوع با هدف بهبود ابزارهای کاربردی می باشد، کتابهای زیادی در شصت و سه درصد گذشته حال و آینده، شناخت فراوان جامعه و متخصصان را می طلبد، تا با نرم افزارها شناخت بیشتری را برای طراحان رایانه ای علی الخصوص طراحان خلاقی، و فرهنگ پیشرو در زبان فارسی ایجاد کرد، در این صورت می توان امید داشت که تمام و دشواری موجود در ارائه راهکارها، و شرایط سخت تایپ به پایان رسد و زمان مورد نیاز شامل حروفچینی دستاوردهای اصلی، و جوابگوی سوالات پیوسته اهل دنیای موجود طراحی اساسا مورد استفاده قرار گیرد.',
+      },
+    ],
   },
 ];
 
@@ -193,46 +227,39 @@ function ChatSidebar() {
                   </Link>
                 </SidebarMenuButton>
               ))}
+              {group.conversations.map(conversation => (
+                <SidebarMenuButton asChild key={conversation.id}>
+                  <Link href='#'>
+                    <span>{conversation.title}</span>
+                  </Link>
+                </SidebarMenuButton>
+              ))}
             </SidebarMenu>
           </SidebarGroup>
         ))}
       </SidebarContent>
+      <SidebarFooter>
+        <SignOutButton />
+      </SidebarFooter>
     </Sidebar>
   );
 }
 
 function ChatContent() {
-  const [prompt, setPrompt] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const { status, messages, sendMessage } = useChat({
+    messages: [...initialMessages] as UIMessage[],
+  });
 
-  const handleSubmit = () => {
+  const [prompt, setPrompt] = useState('');
+
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const isLoading = status !== 'ready';
+
+  const handleSubmit = async () => {
     if (!prompt.trim()) return;
 
     setPrompt('');
-    setIsLoading(true);
-
-    // Add user message immediately
-    const newUserMessage: ChatMessage = {
-      id: chatMessages.length + 1,
-      role: 'user',
-      content: prompt.trim(),
-    };
-
-    setChatMessages(prevMessages => [...prevMessages, newUserMessage]);
-
-    // Simulate API response
-    setTimeout(() => {
-      const assistantResponse: ChatMessage = {
-        id: chatMessages.length + 2,
-        role: 'assistant',
-        content: `This is a response to: "${prompt.trim()}"`,
-      };
-
-      setChatMessages(prev => [...prev, assistantResponse]);
-      setIsLoading(false);
-    }, 1500);
+    await sendMessage({ text: prompt });
   };
 
   return (
@@ -245,9 +272,13 @@ function ChatContent() {
       <div ref={chatContainerRef} className='relative flex-1 overflow-y-auto'>
         <ChatContainerRoot className='h-full'>
           <ChatContainerContent className='space-y-0 px-5 py-12'>
-            {chatMessages.map((message, index) => {
+            {messages.map((message, index) => {
               const isAssistant = message.role === 'assistant';
-              const isLastMessage = index === chatMessages.length - 1;
+              const isLastMessage = index === messages.length - 1;
+              const messageText = message.parts
+                .filter(part => part.type === 'text')
+                .map(part => part.text)
+                .join('');
 
               return (
                 <Message
@@ -259,12 +290,14 @@ function ChatContent() {
                 >
                   {isAssistant ? (
                     <div className='group flex w-full flex-col gap-0'>
-                      <MessageContent
-                        className='text-foreground prose flex-1 rounded-lg bg-transparent p-0'
-                        markdown
-                      >
-                        {message.content}
-                      </MessageContent>
+                      <div dir='rtl' className='w-fit'>
+                        <MessageContent
+                          markdown
+                          className='prose dark:prose-invert flex-1 text-foreground font-vazirmatn rounded-lg bg-transparent p-0'
+                        >
+                          {messageText}
+                        </MessageContent>
+                      </div>
                       <MessageActions
                         className={cn(
                           '-ml-2.5 flex gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100',
@@ -272,7 +305,32 @@ function ChatContent() {
                         )}
                       >
                         <MessageAction tooltip='Copy' delayDuration={100}>
-                          <CopyButton text={message.content} />
+                          <CopyButton text={messageText} />
+                        </MessageAction>
+                        <MessageAction tooltip='Preview' delayDuration={100}>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant='outline'>
+                                <Eye />
+                                Preview
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className='grid grid-rows-[auto_1fr] max-h-[min(calc(100dvh_-_64px),_600px)] sm:max-w-[min(calc(100dvw_-_32px),_var(--container-3xl))]'>
+                              <DialogHeader>
+                                <DialogTitle>Content Preview</DialogTitle>
+                              </DialogHeader>
+                              <div className='overflow-auto'>
+                                <div dir='rtl'>
+                                  <MessageContent
+                                    markdown
+                                    className='prose *:[&.not-prose]:!hidden dark:prose-invert max-w-full flex-1 text-foreground font-vazirmatn rounded-lg bg-transparent p-0'
+                                  >
+                                    {messageText}
+                                  </MessageContent>
+                                </div>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
                         </MessageAction>
                         {/* <MessageAction tooltip='Upvote' delayDuration={100}>
                           <Button
@@ -297,7 +355,7 @@ function ChatContent() {
                   ) : (
                     <div className='group flex flex-col items-end gap-1 w-full'>
                       <MessageContent className='w-fit text-primary max-w-[85%] rounded-3xl px-5 py-2.5 sm:max-w-[75%]'>
-                        {message.content}
+                        {messageText}
                       </MessageContent>
                       <MessageActions
                         className={cn(
@@ -323,7 +381,7 @@ function ChatContent() {
                           </Button>
                         </MessageAction> */}
                         <MessageAction tooltip='Copy' delayDuration={100}>
-                          <CopyButton text={message.content} />
+                          <CopyButton text={messageText} />
                         </MessageAction>
                       </MessageActions>
                     </div>
@@ -395,15 +453,11 @@ function ChatContent() {
 
                   <Button
                     size='icon'
-                    disabled={!prompt.trim() || isLoading}
                     onClick={handleSubmit}
                     className='size-9 rounded-full'
+                    disabled={!prompt.trim() || isLoading}
                   >
-                    {!isLoading ? (
-                      <ArrowUp size={18} />
-                    ) : (
-                      <span className='size-3 rounded-xs bg-white' />
-                    )}
+                    {!isLoading ? <ArrowUp size={18} /> : <Square size={18} />}
                   </Button>
                 </div>
               </PromptInputActions>
