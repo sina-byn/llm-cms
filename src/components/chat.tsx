@@ -59,6 +59,7 @@ import { createMessage } from '@/server/chat';
 import { toast } from 'sonner';
 import { Conversation, NewChatDialog } from './new-chat-dialog';
 import { Badge } from './ui/badge';
+import { ThemeSelect } from './theme-select';
 
 // Initial conversation history
 const conversationHistory = [
@@ -183,6 +184,7 @@ function ChatSidebar({ conversations }: ChatSidebarProps) {
       </SidebarContent>
       <SidebarFooter>
         <SignOutButton />
+        <ThemeSelect />
       </SidebarFooter>
     </Sidebar>
   );
@@ -379,7 +381,7 @@ function ChatContent({ conversation, initialMessages }: ChatContentProps) {
             value={prompt}
             onValueChange={setPrompt}
             onSubmit={handleSubmit}
-            className='border-input bg-popover relative z-10 w-full rounded-3xl border p-0 pt-1 shadow-xs'
+            className='border-input bg-popover relative z-10 w-full rounded-3xl border p-0 shadow-xs overflow-hidden'
           >
             <div className='flex flex-col'>
               <PromptInputTextarea
