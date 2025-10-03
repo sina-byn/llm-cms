@@ -69,7 +69,7 @@ export function NewChatDialog() {
 
     form.reset();
     toast.success('Chat created successfully');
-    router.push(`/chat?conversationId${conversationId}`);
+    router.push(`?conversationId=${conversationId}`);
   };
 
   return (
