@@ -2,6 +2,8 @@ import { useRouter } from 'next/navigation';
 
 import { toast } from 'sonner';
 
+import { LogOut } from 'lucide-react';
+
 import { authClient } from '@/lib/auth-client';
 
 import { Button } from '@/components/ui/button';
@@ -23,6 +25,7 @@ export function SignOutButton() {
 
   return (
     <Button variant='outline' onClick={handleSignOut}>
+      <LogOut />
       Sign out
     </Button>
   );
