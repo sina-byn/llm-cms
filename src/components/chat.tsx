@@ -203,7 +203,7 @@ function ChatContent({ conversation, initialMessages }: ChatContentProps) {
     onFinish: async ({ message }) => {
       const content = stringifiyUIMessage(message);
 
-      await createMessage('3da25b07-3fe3-4924-b849-052bc7fd1b1b', {
+      await createMessage(conversation.id!, {
         role: message.role,
         parts: [{ type: 'text', text: content }],
       });
@@ -226,7 +226,7 @@ function ChatContent({ conversation, initialMessages }: ChatContentProps) {
 
     setPrompt('');
 
-    const error = await createMessage('3da25b07-3fe3-4924-b849-052bc7fd1b1b', {
+    const error = await createMessage(conversation.id!, {
       role: 'user',
       parts: [{ type: 'text', text: trimmedPrompt }],
     });
